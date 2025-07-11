@@ -52,6 +52,10 @@ async def root():
 async def health_check():
     return {"status": "healthy", "message": "API is running"}
 
+@app.get("/healthz")
+async def health_check_alt():
+    return {"status": "healthy", "message": "API is running"}
+
 def analyze_audio(file_path, transcript=None):
     audio, sr = librosa.load(file_path, sr=None)
     pitches, magnitudes = librosa.piptrack(y=audio, sr=sr)
