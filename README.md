@@ -74,15 +74,15 @@ The system analyzes the following speech characteristics:
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
-- Python 3+
+- Python 3.11+
 - Google Cloud API key with Gemini access
 
-### Environment Setup
+### Local Development Setup
 1. Clone the repository
 2. Create a virtual environment:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 3. Install dependencies:
    ```bash
@@ -93,11 +93,39 @@ The system analyzes the following speech characteristics:
    GOOGLE_API_KEY=your_google_api_key_here
    ```
 
-### Running the Application
-1. Start Jupyter Notebook or Jupyter Lab
-2. Open `main.ipynb`
-3. Execute the cell
-4. Use the file upload widget to analyze audio files
+### Running Locally
+1. **API Server:**
+   ```bash
+   uvicorn main_api:app --reload
+   ```
+   The API will be available at `http://localhost:8000`
+
+2. **Test the API:**
+   - Open `http://localhost:8000/docs` for interactive API documentation
+   - Use `test_frontend.html` for a simple web interface
+   - Run `python test_api.py` for command-line testing
+
+### Production Deployment (Render)
+
+1. **Connect to Render:**
+   - Sign up at [render.com](https://render.com)
+   - Connect your GitHub repository
+
+2. **Create a Web Service:**
+   - Choose "Web Service"
+   - Select your repository
+   - Set build command: `pip install -r requirements.txt`
+   - Set start command: `uvicorn main_api:app --host 0.0.0.0 --port $PORT`
+
+3. **Environment Variables:**
+   - Add `GOOGLE_API_KEY` with your actual API key
+   - Set to "Secret" for security
+
+4. **Deploy:**
+   - Click "Create Web Service"
+   - Render will automatically deploy your API
+
+Your API will be available at: `https://your-app-name.onrender.com`
 
 ## 📁 Supported Audio Formats
 - **MP3**: Most common format, good compression

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprov AI Audio Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+        }
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        #fileInput {
+            display: none;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .pitch-image {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Sprov AI Audio Analysis</h1>
+        <p>Upload an audio file to analyze speech patterns, pitch variation, and get detailed insights.</p>
+        
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <p>📁 Click to select an audio file or drag and drop</p>
+            <p><small>Supported formats: MP3, WAV, M4A, FLAC</small></p>
+            <input type="file" id="fileInput" accept=".mp3,.wav,.m4a,.flac">
+        </div>
+        
+        <button class="btn" id="analyzeBtn" onclick="analyzeAudio()" disabled>Analyze Audio</button>
+        
+        <div id="loading" class="loading" style="display: none;">
+            <p>🔄 Analyzing audio... This may take a few moments.</p>
+        </div>
+        
+        <div id="results" class="results">
+            <h2>📊 Analysis Results</h2>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        
+        // File selection handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                document.getElementById('analyzeBtn').disabled = false;
+                document.querySelector('.upload-area').innerHTML = `
+                    <p>✅ Selected: ${selectedFile.name}</p>
+                    <p><small>Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB</small></p>
+                `;
+            }
+        });
+        
+        // Drag and drop handling
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                selectedFile = files[0];
+                document.getElementById('fileInput').files = files;
+                document.getElementById('analyzeBtn').disabled = false;
+                document.querySelector('.upload-area').innerHTML = `
+                    <p>✅ Selected: ${selectedFile.name}</p>
+                    <p><small>Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB</small></p>
+                `;
+            }
+        });
+        
+        async function analyzeAudio() {
+            if (!selectedFile) {
+                alert('Please select an audio file first.');
+                return;
+            }
+            
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            // Show loading
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            analyzeBtn.disabled = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                
+                const response = await fetch('http://localhost:8000/analyze-audio/', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Display results
+                resultsContent.innerHTML = `
+                    <div class="success">✅ Analysis completed successfully!</div>
+                    
+                    <h3>🎯 Key Metrics</h3>
+                    <ul>
+                        <li><strong>Speech Style:</strong> ${data['Speech Style']}</li>
+                        <li><strong>Pitch Variation:</strong> ${data['Pitch Variation'].toFixed(2)}</li>
+                        <li><strong>Intensity Variation:</strong> ${data['Intensity Variation'].toFixed(4)}</li>
+                        <li><strong>Stuttering Detected:</strong> ${data['Stuttering Detected'] ? 'Yes' : 'No'}</li>
+                    </ul>
+                    
+                    <h3>📝 Transcript</h3>
+                    <p>${data['Transcript']}</p>
+                    
+                    <h3>📈 Pitch Contour</h3>
+                    <img src="data:image/png;base64,${data['PitchContourImage']}" alt="Pitch Contour" class="pitch-image">
+                    
+                    <h3>📋 Detailed Report</h3>
+                    <pre>${data['Report']}</pre>
+                `;
+                
+                results.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                resultsContent.innerHTML = `
+                    <div class="error">❌ Error: ${error.message}</div>
+                    <p>Make sure the API server is running on http://localhost:8000</p>
+                `;
+                results.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html> 
