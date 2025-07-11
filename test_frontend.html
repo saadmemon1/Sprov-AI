@@ -166,6 +166,12 @@
                 return;
             }
             
+            // Check file size
+            if (selectedFile.size > 50 * 1024 * 1024) { // 50MB
+                alert('File too large. Please select a file smaller than 50MB.');
+                return;
+            }
+            
             const loading = document.getElementById('loading');
             const results = document.getElementById('results');
             const resultsContent = document.getElementById('resultsContent');
@@ -180,13 +186,20 @@
                 const formData = new FormData();
                 formData.append('file', selectedFile);
                 
-                const response = await fetch('http://localhost:8000/analyze-audio/', {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+                
+                const response = await fetch('https://sprov-ai.onrender.com/analyze-audio/', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
                 
+                clearTimeout(timeoutId);
+                
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
                 
                 const data = await response.json();
@@ -217,9 +230,15 @@
                 
             } catch (error) {
                 console.error('Error:', error);
+                let errorMessage = error.message;
+                
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Request timed out. Please try with a shorter audio file.';
+                }
+                
                 resultsContent.innerHTML = `
-                    <div class="error">❌ Error: ${error.message}</div>
-                    <p>Make sure the API server is running on http://localhost:8000</p>
+                    <div class="error">❌ Error: ${errorMessage}</div>
+                    <p>Try uploading a smaller audio file or check your internet connection.</p>
                 `;
                 results.style.display = 'block';
             } finally {
