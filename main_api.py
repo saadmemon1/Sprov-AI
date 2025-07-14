@@ -143,67 +143,60 @@ async def analyze_audio_async(file_path: str, transcript: Optional[str] = None):
 
 @app.post("/analyze-audio/")
 async def analyze_audio_endpoint(file: UploadFile = File(...)):
-    # Validate file
-    validate_file(file)
-    
-    # Check file size
-    file_size = 0
     temp_path = f"temp_{file.filename}"
-    
+    with open(temp_path, "wb") as f:
+        f.write(await file.read())
     try:
-        # Read file in chunks to check size
-        with open(temp_path, "wb") as f:
-            while True:
-                chunk = await file.read(8192)  # 8KB chunks
-                if not chunk:
-                    break
-                file_size += len(chunk)
-                if file_size > MAX_FILE_SIZE:
-                    raise HTTPException(
-                        status_code=413, 
-                        detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB"
-                    )
-                f.write(chunk)
-        
-        # Analyze audio with timeout
-        try:
-            results = await asyncio.wait_for(
-                analyze_audio_async(temp_path), 
-                timeout=60.0  # 60 second timeout
-            )
-        except asyncio.TimeoutError:
-            raise HTTPException(status_code=408, detail="Analysis timed out. Please try with a shorter audio file.")
-        
-        # Generate report with timeout
-        try:
-            report_prompt = [
-                "You are a helpful and informative AI assistant.",
-                "Construct a detailed report for the current results and the steps for improvements in each sector of the current report.",
-                "Instead of giving individual values for the parameters, give them a score (from 0 to +5 for higher than average and from 0 to -5 for less than average) and then give a chart containing all the parameters and their score depending on the level of fluctuation.",
-                "The report must contain at least some comments about each individual parameter present in the current result and display the transcript as it is.",
-                "Current Results:",
-                str(results),
-                "Current Transcript:",
-                results['Transcript']
-            ]
-            report_response = await asyncio.wait_for(
-                asyncio.to_thread(model.generate_content, report_prompt),
-                timeout=30.0  # 30 second timeout for report generation
-            )
-            results['Report'] = report_response.text
-        except asyncio.TimeoutError:
-            results['Report'] = "Report generation timed out. Basic analysis completed."
-        except Exception as e:
-            results['Report'] = f"Report generation failed: {str(e)}"
-        
+        # Librosa analysis only, no Gemini
+        audio, sr = librosa.load(temp_path, sr=None)
+        pitches, magnitudes = librosa.piptrack(y=audio, sr=sr)
+        smoothed_pitches = []
+        for t in range(pitches.shape[1]):
+            pitch = pitches[:, t][magnitudes[:, t].argmax()]
+            if pitch > 50:
+                smoothed_pitches.append(pitch)
+            else:
+                smoothed_pitches.append(0)
+        smoothed_pitches = medfilt(smoothed_pitches, kernel_size=5)
+        pitch_variation = np.std([p for p in smoothed_pitches if p > 0])
+        rms = librosa.feature.rms(y=audio)[0]
+        intensity_variation = np.std(rms)
+        speech_type = 'Monotonous' if pitch_variation < 20 and intensity_variation < 5 else 'Dynamic'
+        averaged_pitches = [np.mean([p for p in smoothed_pitches[i:i+100] if p > 0]) for i in range(0, len(smoothed_pitches), 100)]
+
+        # Plot the smoothed pitch contour
+        plt.figure(figsize=(10, 4))
+        plt.plot(smoothed_pitches, label='Smoothed Pitch Contour')
+        plt.xlabel('Frame')
+        plt.ylabel('Pitch (Hz)')
+        plt.title('Smoothed Pitch Contour')
+        plt.legend()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close()
+        buf.seek(0)
+        pitch_img_b64 = base64.b64encode(buf.read()).decode('utf-8')
+
+        # Dummy transcript
+        transcript = "[Transcript not available: Gemini API disabled for this test]"
+
+        # Stuttering detection (dummy, since no real transcript)
+        stuttering_detected = False
+
+        results = {
+            'Pitch Variation': float(pitch_variation),
+            'Intensity Variation': float(intensity_variation),
+            'Speech Style': speech_type,
+            'Stuttering Detected': stuttering_detected,
+            'Average Pitches': [float(x) for x in averaged_pitches],
+            'Transcript': transcript,
+            'PitchContourImage': pitch_img_b64,
+            'Report': '[Report not available: Gemini API disabled for this test]'
+        }
         return JSONResponse(content=results)
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
     finally:
-        # Clean up
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
