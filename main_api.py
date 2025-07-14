@@ -147,55 +147,20 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
     with open(temp_path, "wb") as f:
         f.write(await file.read())
     try:
-        # Librosa analysis only, no Gemini
-        audio, sr = librosa.load(temp_path, sr=None)
-        pitches, magnitudes = librosa.piptrack(y=audio, sr=sr)
-        smoothed_pitches = []
-        for t in range(pitches.shape[1]):
-            pitch = pitches[:, t][magnitudes[:, t].argmax()]
-            if pitch > 50:
-                smoothed_pitches.append(pitch)
-            else:
-                smoothed_pitches.append(0)
-        smoothed_pitches = medfilt(smoothed_pitches, kernel_size=5)
-        pitch_variation = np.std([p for p in smoothed_pitches if p > 0])
+        print("Before librosa.load")
+        audio, sr = librosa.load(temp_path, sr=8000, duration=2.0)
+        print("After librosa.load")
+        duration = len(audio) / sr
         rms = librosa.feature.rms(y=audio)[0]
-        intensity_variation = np.std(rms)
-        speech_type = 'Monotonous' if pitch_variation < 20 and intensity_variation < 5 else 'Dynamic'
-        averaged_pitches = [np.mean([p for p in smoothed_pitches[i:i+100] if p > 0]) for i in range(0, len(smoothed_pitches), 100)]
-
-        # Plot the smoothed pitch contour
-        plt.figure(figsize=(10, 4))
-        plt.plot(smoothed_pitches, label='Smoothed Pitch Contour')
-        plt.xlabel('Frame')
-        plt.ylabel('Pitch (Hz)')
-        plt.title('Smoothed Pitch Contour')
-        plt.legend()
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close()
-        buf.seek(0)
-        pitch_img_b64 = base64.b64encode(buf.read()).decode('utf-8')
-
-        # Dummy transcript
-        transcript = "[Transcript not available: Gemini API disabled for this test]"
-
-        # Stuttering detection (dummy, since no real transcript)
-        stuttering_detected = False
-
-        results = {
-            'Pitch Variation': float(pitch_variation),
-            'Intensity Variation': float(intensity_variation),
-            'Speech Style': speech_type,
-            'Stuttering Detected': stuttering_detected,
-            'Average Pitches': [float(x) for x in averaged_pitches],
-            'Transcript': transcript,
-            'PitchContourImage': pitch_img_b64,
-            'Report': '[Report not available: Gemini API disabled for this test]'
+        intensity_variation = float(np.std(rms))
+        print("After RMS")
+        return {
+            "duration_seconds": duration,
+            "intensity_variation": intensity_variation,
+            "message": "Minimal analysis complete"
         }
-        return JSONResponse(content=results)
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return {"error": str(e)}
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
