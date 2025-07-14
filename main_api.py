@@ -206,3 +206,12 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
         # Clean up
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+@app.post("/test-audio/")
+async def test_audio_endpoint(file: UploadFile = File(...)):
+    temp_path = f"temp_{file.filename}"
+    with open(temp_path, "wb") as f:
+        f.write(await file.read())
+    size = os.path.getsize(temp_path)
+    os.remove(temp_path)
+    return {"status": "ok", "file_size": size}
