@@ -13,6 +13,7 @@ import google.generativeai as genai
 import base64
 import asyncio
 from typing import Optional
+from scipy.io import wavfile
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -147,17 +148,16 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
     with open(temp_path, "wb") as f:
         f.write(await file.read())
     try:
-        print("Before librosa.load")
-        audio, sr = librosa.load(temp_path, sr=8000, duration=2.0)
-        print("After librosa.load")
+        # Only support WAV files for now
+        if not temp_path.lower().endswith('.wav'):
+            return {"error": "Only WAV files are supported in this minimal endpoint."}
+        sr, audio = wavfile.read(temp_path)
         duration = len(audio) / sr
-        rms = librosa.feature.rms(y=audio)[0]
-        intensity_variation = float(np.std(rms))
-        print("After RMS")
+        intensity_variation = float(np.std(audio))
         return {
             "duration_seconds": duration,
             "intensity_variation": intensity_variation,
-            "message": "Minimal analysis complete"
+            "message": "Minimal WAV-only analysis complete"
         }
     except Exception as e:
         return {"error": str(e)}
