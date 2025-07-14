@@ -149,8 +149,8 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
         f.write(await file.read())
     try:
         # Only support WAV files for now
-        if not temp_path.lower().endswith('.wav'):
-            return {"error": "Only WAV files are supported in this minimal endpoint."}
+        # if not temp_path.lower().endswith('.wav'):
+        #     return {"error": "Only WAV files are supported in this minimal endpoint."}
         sr, audio = wavfile.read(temp_path)
         duration = len(audio) / sr
         intensity_variation = float(np.std(audio))

@@ -205,27 +205,37 @@
                 const data = await response.json();
                 
                 // Display results
+                let html = '';
+                if (data['Pitch Variation'] !== undefined) {
+                    html += `<li><strong>Pitch Variation:</strong> ${data['Pitch Variation'].toFixed(2)}</li>`;
+                }
+                if (data['Speech Style'] !== undefined) {
+                    html += `<li><strong>Speech Style:</strong> ${data['Speech Style']}</li>`;
+                }
+                if (data['Intensity Variation'] !== undefined) {
+                    html += `<li><strong>Intensity Variation:</strong> ${data['Intensity Variation'].toFixed(4)}</li>`;
+                }
+                if (data['Stuttering Detected'] !== undefined) {
+                    html += `<li><strong>Stuttering Detected:</strong> ${data['Stuttering Detected'] ? 'Yes' : 'No'}</li>`;
+                }
+                if (data['duration_seconds'] !== undefined) {
+                    html += `<li><strong>Duration (s):</strong> ${data['duration_seconds'].toFixed(2)}</li>`;
+                }
+                if (data['intensity_variation'] !== undefined) {
+                    html += `<li><strong>Intensity Variation:</strong> ${data['intensity_variation'].toFixed(4)}</li>`;
+                }
+                if (!html) {
+                    html = '<div class="error">❌ Error: Unexpected response from server.</div>';
+                }
                 resultsContent.innerHTML = `
                     <div class="success">✅ Analysis completed successfully!</div>
-                    
                     <h3>🎯 Key Metrics</h3>
-                    <ul>
-                        <li><strong>Speech Style:</strong> ${data['Speech Style']}</li>
-                        <li><strong>Pitch Variation:</strong> ${data['Pitch Variation'].toFixed(2)}</li>
-                        <li><strong>Intensity Variation:</strong> ${data['Intensity Variation'].toFixed(4)}</li>
-                        <li><strong>Stuttering Detected:</strong> ${data['Stuttering Detected'] ? 'Yes' : 'No'}</li>
-                    </ul>
-                    
-                    <h3>📝 Transcript</h3>
-                    <p>${data['Transcript']}</p>
-                    
-                    <h3>📈 Pitch Contour</h3>
-                    <img src="data:image/png;base64,${data['PitchContourImage']}" alt="Pitch Contour" class="pitch-image">
-                    
-                    <h3>📋 Detailed Report</h3>
-                    <pre>${data['Report']}</pre>
+                    <ul>${html}</ul>
+                    ${data['Transcript'] ? `<h3>📝 Transcript</h3><p>${data['Transcript']}</p>` : ''}
+                    ${data['PitchContourImage'] ? `<h3>📈 Pitch Contour</h3><img src="data:image/png;base64,${data['PitchContourImage']}" alt="Pitch Contour" class="pitch-image">` : ''}
+                    ${data['Report'] ? `<h3>📋 Detailed Report</h3><pre>${data['Report']}</pre>` : ''}
+                    ${data['message'] ? `<h3>ℹ️ Info</h3><p>${data['message']}</p>` : ''}
                 `;
-                
                 results.style.display = 'block';
                 
             } catch (error) {
