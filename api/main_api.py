@@ -148,16 +148,13 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
     with open(temp_path, "wb") as f:
         f.write(await file.read())
     try:
-        # Only support WAV files for now
-        # if not temp_path.lower().endswith('.wav'):
-        #     return {"error": "Only WAV files are supported in this minimal endpoint."}
-        sr, audio = wavfile.read(temp_path)
+        # Step 1: Only librosa.load
+        audio, sr = librosa.load(temp_path, sr=None)
         duration = len(audio) / sr
-        intensity_variation = float(np.std(audio))
         return {
+            "sample_rate": sr,
             "duration_seconds": duration,
-            "intensity_variation": intensity_variation,
-            "message": "Minimal WAV-only analysis complete"
+            "message": "Loaded audio with librosa.load only."
         }
     except Exception as e:
         return {"error": str(e)}

@@ -1,3 +1,15 @@
+# Sprov-AI Monorepo
+
+This repository contains:
+
+- `api/` — FastAPI backend for audio analysis (deployed on Render)
+- `web/` — Next.js webapp (deployed on Vercel)
+- `mobile/` — Expo React Native app (runs on iOS/Android)
+
+Each project is independent and can be run or deployed separately.
+
+---
+
 # Sprov AI - Speech Analysis & Coaching Platform
 
 Sprov AI is an innovative speech coaching application designed to elevate soft skills through AI-powered analysis and feedback. The platform utilizes **Google's Gemini 2.0 Flash** model to create comprehensive and personalized speech analysis reports, providing users with actionable insights to improve their communication abilities.
