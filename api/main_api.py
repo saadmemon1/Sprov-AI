@@ -239,6 +239,42 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
             words = transcript.split()
             stuttering_detected = any(words[i] == words[i+1] for i in range(len(words)-1))
         
+        # Step 5: Generate pitch contour plot
+        try:
+            plt.figure(figsize=(12, 6))
+            
+            # Create time axis
+            time_axis = np.linspace(0, duration, len(smoothed_pitches))
+            
+            # Plot pitch contour
+            plt.plot(time_axis, smoothed_pitches, label='Pitch Contour', color='blue', alpha=0.7, linewidth=1.5)
+            
+            # Add average pitch line
+            if avg_pitch > 0:
+                plt.axhline(y=avg_pitch, color='red', linestyle='--', alpha=0.5, label=f'Average Pitch ({avg_pitch:.1f} Hz)')
+            
+            plt.xlabel('Time (seconds)')
+            plt.ylabel('Pitch (Hz)')
+            plt.title('Pitch Contour Analysis')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            
+            # Set y-axis limits for better visualization
+            valid_pitches_only = [p for p in smoothed_pitches if p > 0]
+            if valid_pitches_only:
+                plt.ylim(0, max(valid_pitches_only) * 1.1)
+            
+            # Convert plot to base64
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', dpi=72, bbox_inches='tight', facecolor='white')
+            plt.close()
+            buf.seek(0)
+            pitch_img_b64 = base64.b64encode(buf.read()).decode('utf-8')
+            
+        except Exception as e:
+            print(f"Plotting failed: {str(e)}")
+            pitch_img_b64 = None
+        
         return {
             "sample_rate": sr,
             "duration_seconds": duration,
@@ -254,9 +290,10 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
             },
             "speech_style": speech_type,
             "stuttering_detected": stuttering_detected,
+            "pitch_contour_image": pitch_img_b64,
             "transcript": transcript,
             "ai_report": ai_report,
-            "message": "Step 4: Full analysis completed - pitch, intensity, speech style, stuttering detection, and Gemini integration."
+            "message": "Step 5: Complete analysis with pitch contour visualization, intensity analysis, speech style, stuttering detection, and Gemini integration."
         }
     except Exception as e:
         print(f"Error loading audio: {str(e)}")

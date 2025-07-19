@@ -207,7 +207,7 @@
                 // Display results
                 let html = '';
                 
-                // Handle Step 4 response format (full analysis)
+                // Handle Step 5 response format (complete analysis with visualization)
                 if (data.pitch_analysis) {
                     html += `<li><strong>Duration (s):</strong> ${data.duration_seconds?.toFixed(2) || 'N/A'}</li>`;
                     html += `<li><strong>Sample Rate:</strong> ${data.sample_rate || 'N/A'} Hz</li>`;
@@ -255,10 +255,10 @@
                     <div class="success">✅ Analysis completed successfully!</div>
                     <h3>🎯 Key Metrics</h3>
                     <ul>${html}</ul>
+                    ${data.pitch_contour_image ? `<h3>📈 Pitch Contour Visualization</h3><img src="data:image/png;base64,${data.pitch_contour_image}" alt="Pitch Contour Analysis" class="pitch-image">` : ''}
+                    ${data['PitchContourImage'] ? `<h3>📈 Pitch Contour</h3><img src="data:image/png;base64,${data['PitchContourImage']}" alt="Pitch Contour" class="pitch-image">` : ''}
                     ${data.transcript ? `<h3>📝 Transcript</h3><p>${data.transcript}</p>` : ''}
                     ${data.ai_report ? `<h3>🤖 AI Analysis Report</h3><pre>${data.ai_report}</pre>` : ''}
-                    ${data.pitch_contour_image ? `<h3>📈 Pitch Contour</h3><img src="data:image/png;base64,${data.pitch_contour_image}" alt="Pitch Contour" class="pitch-image">` : ''}
-                    ${data['PitchContourImage'] ? `<h3>📈 Pitch Contour</h3><img src="data:image/png;base64,${data['PitchContourImage']}" alt="Pitch Contour" class="pitch-image">` : ''}
                     ${data['Report'] ? `<h3>📋 Detailed Report</h3><pre>${data['Report']}</pre>` : ''}
                     ${data.message ? `<h3>ℹ️ Info</h3><p>${data.message}</p>` : ''}
                 `;
