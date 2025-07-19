@@ -149,7 +149,17 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
         f.write(await file.read())
     try:
         # Step 2: librosa.load + pitch extraction
-        audio, sr = librosa.load(temp_path, sr=None)
+        file_size = os.path.getsize(temp_path)
+        print(f"Loading audio file: {temp_path}, size: {file_size} bytes")
+        
+        # For large files, try downsampling to reduce memory usage
+        target_sr = None
+        if file_size > 10 * 1024 * 1024:  # If file > 10MB
+            target_sr = 22050  # Downsample to 22kHz
+            print(f"Large file detected, downsampling to {target_sr} Hz")
+        
+        audio, sr = librosa.load(temp_path, sr=target_sr)
+        print(f"Audio loaded successfully: {len(audio)} samples, {sr} Hz")
         duration = len(audio) / sr
         
         # Extract pitch
@@ -249,7 +259,8 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
             "message": "Step 4: Full analysis completed - pitch, intensity, speech style, stuttering detection, and Gemini integration."
         }
     except Exception as e:
-        return {"error": str(e)}
+        print(f"Error loading audio: {str(e)}")
+        return {"error": f"Load failed: {str(e)}"}
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
