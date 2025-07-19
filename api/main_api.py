@@ -148,13 +148,36 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
     with open(temp_path, "wb") as f:
         f.write(await file.read())
     try:
-        # Step 1: Only librosa.load
+        # Step 2: librosa.load + pitch extraction
         audio, sr = librosa.load(temp_path, sr=None)
         duration = len(audio) / sr
+        
+        # Extract pitch
+        pitches, magnitudes = librosa.piptrack(y=audio, sr=sr)
+        smoothed_pitches = []
+        
+        for t in range(pitches.shape[1]):
+            pitch = pitches[:, t][magnitudes[:, t].argmax()]
+            if pitch > 50:  # Filter out low frequencies
+                smoothed_pitches.append(pitch)
+            else:
+                smoothed_pitches.append(0)
+        
+        # Basic pitch statistics
+        valid_pitches = [p for p in smoothed_pitches if p > 0]
+        pitch_variation = np.std(valid_pitches) if valid_pitches else 0
+        avg_pitch = np.mean(valid_pitches) if valid_pitches else 0
+        
         return {
             "sample_rate": sr,
             "duration_seconds": duration,
-            "message": "Loaded audio with librosa.load only."
+            "pitch_analysis": {
+                "average_pitch_hz": float(avg_pitch),
+                "pitch_variation": float(pitch_variation),
+                "total_frames": len(smoothed_pitches),
+                "valid_pitch_frames": len(valid_pitches)
+            },
+            "message": "Step 2: Audio loaded + pitch extraction completed."
         }
     except Exception as e:
         return {"error": str(e)}
