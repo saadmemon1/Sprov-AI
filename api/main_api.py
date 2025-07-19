@@ -170,13 +170,20 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
         
         # Step 3: Gemini Transcription and Analysis
         try:
-            # Upload audio to Gemini
-            audio_file = genai.upload_file(path=temp_path)
+            # Read audio file as bytes
+            with open(temp_path, 'rb') as audio_file:
+                audio_bytes = audio_file.read()
+            
+            # Create audio part for Gemini
+            audio_part = {
+                "mime_type": "audio/wav",
+                "data": audio_bytes
+            }
             
             # Get transcription
             transcript_response = model.generate_content([
                 "Please transcribe this audio recording accurately. Return only the transcription text:",
-                audio_file
+                audio_part
             ])
             transcript = transcript_response.text.strip()
             
