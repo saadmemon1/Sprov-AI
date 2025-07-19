@@ -168,6 +168,43 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
         pitch_variation = np.std(valid_pitches) if valid_pitches else 0
         avg_pitch = np.mean(valid_pitches) if valid_pitches else 0
         
+        # Step 3: Gemini Transcription and Analysis
+        try:
+            # Upload audio to Gemini
+            audio_file = genai.upload_file(path=temp_path)
+            
+            # Get transcription
+            transcript_response = model.generate_content([
+                "Please transcribe this audio recording accurately. Return only the transcription text:",
+                audio_file
+            ])
+            transcript = transcript_response.text.strip()
+            
+            # Get AI analysis and feedback
+            analysis_prompt = f"""
+            Analyze this speech recording and provide detailed feedback:
+            
+            TRANSCRIPT: {transcript}
+            PITCH ANALYSIS: Average pitch: {avg_pitch:.1f} Hz, Variation: {pitch_variation:.2f}
+            DURATION: {duration:.2f} seconds
+            
+            Please provide:
+            1. Speech clarity assessment
+            2. Pitch and tone feedback
+            3. Speaking pace analysis
+            4. Overall communication effectiveness
+            5. Specific improvement suggestions
+            
+            Format as a clear, structured report.
+            """
+            
+            analysis_response = model.generate_content(analysis_prompt)
+            ai_report = analysis_response.text.strip()
+            
+        except Exception as e:
+            transcript = f"Transcription failed: {str(e)}"
+            ai_report = f"AI analysis failed: {str(e)}"
+        
         return {
             "sample_rate": sr,
             "duration_seconds": duration,
@@ -177,7 +214,9 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
                 "total_frames": len(smoothed_pitches),
                 "valid_pitch_frames": len(valid_pitches)
             },
-            "message": "Step 2: Audio loaded + pitch extraction completed."
+            "transcript": transcript,
+            "ai_report": ai_report,
+            "message": "Step 3: Audio loaded + pitch extraction + Gemini transcription & analysis completed."
         }
     except Exception as e:
         return {"error": str(e)}
