@@ -163,10 +163,22 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
             else:
                 smoothed_pitches.append(0)
         
+        # Step 4: Full Analysis Features
         # Basic pitch statistics
         valid_pitches = [p for p in smoothed_pitches if p > 0]
         pitch_variation = np.std(valid_pitches) if valid_pitches else 0
         avg_pitch = np.mean(valid_pitches) if valid_pitches else 0
+        
+        # Intensity analysis (RMS energy)
+        rms = librosa.feature.rms(y=audio)[0]
+        intensity_variation = np.std(rms)
+        avg_intensity = np.mean(rms)
+        
+        # Speech style classification
+        speech_type = 'Monotonous' if pitch_variation < 20 and intensity_variation < 5 else 'Dynamic'
+        
+        # Stuttering detection (simple word repetition check)
+        stuttering_detected = False  # Will be updated with transcript analysis
         
         # Step 3: Gemini Transcription and Analysis
         try:
@@ -212,6 +224,11 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
             transcript = f"Transcription failed: {str(e)}"
             ai_report = f"AI analysis failed: {str(e)}"
         
+        # Update stuttering detection with transcript
+        if transcript and "Transcription failed" not in transcript:
+            words = transcript.split()
+            stuttering_detected = any(words[i] == words[i+1] for i in range(len(words)-1))
+        
         return {
             "sample_rate": sr,
             "duration_seconds": duration,
@@ -221,9 +238,15 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
                 "total_frames": len(smoothed_pitches),
                 "valid_pitch_frames": len(valid_pitches)
             },
+            "intensity_analysis": {
+                "average_intensity": float(avg_intensity),
+                "intensity_variation": float(intensity_variation)
+            },
+            "speech_style": speech_type,
+            "stuttering_detected": stuttering_detected,
             "transcript": transcript,
             "ai_report": ai_report,
-            "message": "Step 3: Audio loaded + pitch extraction + Gemini transcription & analysis completed."
+            "message": "Step 4: Full analysis completed - pitch, intensity, speech style, stuttering detection, and Gemini integration."
         }
     except Exception as e:
         return {"error": str(e)}

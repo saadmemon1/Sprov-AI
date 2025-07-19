@@ -207,7 +207,7 @@
                 // Display results
                 let html = '';
                 
-                // Handle Step 2 response format (pitch_analysis object)
+                // Handle Step 4 response format (full analysis)
                 if (data.pitch_analysis) {
                     html += `<li><strong>Duration (s):</strong> ${data.duration_seconds?.toFixed(2) || 'N/A'}</li>`;
                     html += `<li><strong>Sample Rate:</strong> ${data.sample_rate || 'N/A'} Hz</li>`;
@@ -215,6 +215,18 @@
                     html += `<li><strong>Pitch Variation:</strong> ${data.pitch_analysis.pitch_variation?.toFixed(2) || 'N/A'}</li>`;
                     html += `<li><strong>Total Frames:</strong> ${data.pitch_analysis.total_frames || 'N/A'}</li>`;
                     html += `<li><strong>Valid Pitch Frames:</strong> ${data.pitch_analysis.valid_pitch_frames || 'N/A'}</li>`;
+                    
+                    // Step 4 features
+                    if (data.intensity_analysis) {
+                        html += `<li><strong>Average Intensity:</strong> ${data.intensity_analysis.average_intensity?.toFixed(4) || 'N/A'}</li>`;
+                        html += `<li><strong>Intensity Variation:</strong> ${data.intensity_analysis.intensity_variation?.toFixed(4) || 'N/A'}</li>`;
+                    }
+                    if (data.speech_style) {
+                        html += `<li><strong>Speech Style:</strong> ${data.speech_style}</li>`;
+                    }
+                    if (data.stuttering_detected !== undefined) {
+                        html += `<li><strong>Stuttering Detected:</strong> ${data.stuttering_detected ? 'Yes' : 'No'}</li>`;
+                    }
                 }
                 // Handle old response format (for backward compatibility)
                 else if (data['Pitch Variation'] !== undefined) {
