@@ -162,12 +162,15 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
         print(f"Audio loaded successfully: {len(audio)} samples, {sr} Hz")
         duration = len(audio) / sr
         
-        # Extract pitch
-        pitches, magnitudes = librosa.piptrack(y=audio, sr=sr)
+        # Extract pitch (optimized for speed)
+        # Use hop_length=512 for faster processing (default is 512, but let's be explicit)
+        pitches, magnitudes = librosa.piptrack(y=audio, sr=sr, hop_length=512, fmin=50, fmax=800)
         smoothed_pitches = []
         
+        # Optimize pitch extraction loop
         for t in range(pitches.shape[1]):
-            pitch = pitches[:, t][magnitudes[:, t].argmax()]
+            index = magnitudes[:, t].argmax()
+            pitch = pitches[index, t]
             if pitch > 50:  # Filter out low frequencies
                 smoothed_pitches.append(pitch)
             else:
@@ -190,7 +193,7 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
         # Stuttering detection (simple word repetition check)
         stuttering_detected = False  # Will be updated with transcript analysis
         
-        # Step 3: Gemini Transcription and Analysis
+        # Step 3: Gemini Transcription and Analysis (optimized)
         try:
             # Read audio file as bytes
             with open(temp_path, 'rb') as audio_file:
@@ -202,33 +205,39 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
                 "data": audio_bytes
             }
             
-            # Get transcription
-            transcript_response = model.generate_content([
-                "Please transcribe this audio recording accurately. Return only the transcription text:",
-                audio_part
-            ])
-            transcript = transcript_response.text.strip()
+            # Combined prompt for faster processing
+            combined_prompt = f"""
+            Please analyze this audio recording and provide:
             
-            # Get AI analysis and feedback
-            analysis_prompt = f"""
-            Analyze this speech recording and provide detailed feedback:
+            1. TRANSCRIPTION: Transcribe the speech accurately
+            2. ANALYSIS: Based on the transcript and these metrics:
+               - Average pitch: {avg_pitch:.1f} Hz
+               - Pitch variation: {pitch_variation:.2f}
+               - Duration: {duration:.2f} seconds
+               - Speech style: {speech_type}
+               
+            Provide a concise but comprehensive analysis covering:
+            - Speech clarity
+            - Pitch and tone feedback  
+            - Speaking pace
+            - Communication effectiveness
+            - 2-3 specific improvement suggestions
             
-            TRANSCRIPT: {transcript}
-            PITCH ANALYSIS: Average pitch: {avg_pitch:.1f} Hz, Variation: {pitch_variation:.2f}
-            DURATION: {duration:.2f} seconds
-            
-            Please provide:
-            1. Speech clarity assessment
-            2. Pitch and tone feedback
-            3. Speaking pace analysis
-            4. Overall communication effectiveness
-            5. Specific improvement suggestions
-            
-            Format as a clear, structured report.
+            Format as: "TRANSCRIPT: [text]" followed by "ANALYSIS: [feedback]"
             """
             
-            analysis_response = model.generate_content(analysis_prompt)
-            ai_report = analysis_response.text.strip()
+            # Single API call instead of two
+            response = model.generate_content([combined_prompt, audio_part])
+            response_text = response.text.strip()
+            
+            # Parse the response
+            if "TRANSCRIPT:" in response_text and "ANALYSIS:" in response_text:
+                parts = response_text.split("ANALYSIS:")
+                transcript = parts[0].replace("TRANSCRIPT:", "").strip()
+                ai_report = parts[1].strip()
+            else:
+                transcript = response_text
+                ai_report = "Analysis completed but format parsing failed."
             
         except Exception as e:
             transcript = f"Transcription failed: {str(e)}"
@@ -239,35 +248,37 @@ async def analyze_audio_endpoint(file: UploadFile = File(...)):
             words = transcript.split()
             stuttering_detected = any(words[i] == words[i+1] for i in range(len(words)-1))
         
-        # Step 5: Generate pitch contour plot
+        # Step 5: Generate pitch contour plot (optimized)
         try:
-            plt.figure(figsize=(12, 6))
+            # Use smaller figure size and lower DPI for faster rendering
+            plt.figure(figsize=(10, 5), dpi=72)
             
-            # Create time axis
+            # Create time axis (optimized)
             time_axis = np.linspace(0, duration, len(smoothed_pitches))
             
-            # Plot pitch contour
-            plt.plot(time_axis, smoothed_pitches, label='Pitch Contour', color='blue', alpha=0.7, linewidth=1.5)
+            # Plot pitch contour with optimized settings
+            plt.plot(time_axis, smoothed_pitches, label='Pitch Contour', color='blue', alpha=0.7, linewidth=1)
             
             # Add average pitch line
             if avg_pitch > 0:
-                plt.axhline(y=avg_pitch, color='red', linestyle='--', alpha=0.5, label=f'Average Pitch ({avg_pitch:.1f} Hz)')
+                plt.axhline(y=avg_pitch, color='red', linestyle='--', alpha=0.5, label=f'Average ({avg_pitch:.0f} Hz)')
             
-            plt.xlabel('Time (seconds)')
+            plt.xlabel('Time (s)')
             plt.ylabel('Pitch (Hz)')
-            plt.title('Pitch Contour Analysis')
+            plt.title('Pitch Analysis')
             plt.legend()
-            plt.grid(True, alpha=0.3)
+            plt.grid(True, alpha=0.2)
             
-            # Set y-axis limits for better visualization
+            # Optimize y-axis limits
             valid_pitches_only = [p for p in smoothed_pitches if p > 0]
             if valid_pitches_only:
-                plt.ylim(0, max(valid_pitches_only) * 1.1)
+                plt.ylim(0, min(max(valid_pitches_only) * 1.1, 800))  # Cap at 800 Hz for better visualization
             
-            # Convert plot to base64
+            # Faster image generation
             buf = io.BytesIO()
-            plt.savefig(buf, format='png', dpi=72, bbox_inches='tight', facecolor='white')
-            plt.close()
+            plt.savefig(buf, format='png', dpi=72, bbox_inches='tight', facecolor='white', 
+                       pad_inches=0.1, transparent=False)
+            plt.close('all')  # Close all figures to free memory
             buf.seek(0)
             pitch_img_b64 = base64.b64encode(buf.read()).decode('utf-8')
             
