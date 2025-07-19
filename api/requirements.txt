@@ -1,22 +1,11 @@
-fastapi
-uvicorn
-python-multipart
-librosa
-numpy
-matplotlib
-scipy
-python-dotenv
-google-generativeai
-requests 
-# setuptools>=65.0.0
-# wheel>=0.38.0
-# fastapi>=0.104.0
-# uvicorn[standard]>=0.24.0
-# python-multipart>=0.0.6
-# librosa>=0.10.0
-# numpy>=1.24.0
-# matplotlib>=3.7.0
-# scipy>=1.11.0
-# python-dotenv>=1.0.0
-# google-generativeai>=0.3.0
-# requests>=2.31.0
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+librosa==0.10.1
+numpy==1.24.3
+scipy==1.11.4
+matplotlib==3.7.2
+google-generativeai==0.3.2
+python-dotenv==1.0.0
+setuptools==68.2.2
+wheel==0.41.2
