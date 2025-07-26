@@ -1,9 +1,10 @@
-import { ScrollView, StyleSheet, TouchableOpacity, View, Image, Platform } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View, Image, Platform, Text } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
+import { Link, router } from 'expo-router';
+import { getLastAnalysisResult } from './analysisResultStore';
 import { useState, useEffect } from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Text } from '@/components/Themed';
 
 interface AnalysisResults {
     sample_rate?: number;
@@ -27,23 +28,14 @@ interface AnalysisResults {
 }
 
 export default function ResultsScreen() {
-    const params = useLocalSearchParams();
     const [results, setResults] = useState<AnalysisResults | null>(null);
     const [fileName, setFileName] = useState<string>('Audio File');
 
     useEffect(() => {
-        try {
-            if (params.results && typeof params.results === 'string') {
-                const parsedResults = JSON.parse(params.results);
-                setResults(parsedResults);
-            }
-            if (params.fileName && typeof params.fileName === 'string') {
-                setFileName(params.fileName);
-            }
-        } catch (error) {
-            console.error('Error parsing results:', error);
-        }
-    }, [params]);
+        const { result, fileName } = getLastAnalysisResult();
+        if (result) setResults(result);
+        if (fileName) setFileName(fileName);
+    }, []);
 
     const handleBackPress = () => {
         router.back();
@@ -64,6 +56,34 @@ export default function ResultsScreen() {
                     <TouchableOpacity onPress={handleBackPress} style={styles.primaryButton}>
                         <Text style={styles.buttonText}>Go Back</Text>
                     </TouchableOpacity>
+                </View>
+
+                <View style={{
+                position: 'absolute',
+                bottom: 20,
+                left: 0,
+                right: 0,
+                alignItems: 'center',
+                }}>
+                    <Text style={{ 
+                        color: '#a0aec0', 
+                        fontSize: 12, 
+                        fontFamily: 'Jakarta-Light' 
+                    }}>
+                        Powered by Google's Gemini 2.0 Flash AI Model.
+                    </Text>
+                    <Link href="https://github.com/saadmemon1/Sprov-AI" target="_blank">
+                            <Text style={{ 
+                                color: '#a0aec0', 
+                                fontSize: 12, 
+                                fontFamily: 'Jakarta-Light' ,
+                                marginTop: 4,
+                                textDecorationLine: 'underline',
+                                fontWeight: 'bold'
+                            }}>
+                                © 2025 Sprov AI. All rights reserved.
+                            </Text>
+                    </Link>
                 </View>
             </SafeAreaView>
         );
@@ -189,9 +209,17 @@ export default function ResultsScreen() {
                 {/* AI Analysis Report */}
                 {results.ai_report && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>🤖 AI Analysis Report</Text>
+                        <Text style={styles.sectionTitle}>📄 AI Analysis Report</Text>
                         <View style={styles.reportContainer}>
-                            <Text style={styles.reportText}>{results.ai_report}</Text>
+                            <Markdown style={{
+                                body: { color: '#2d3748', fontSize: 14, fontFamily: 'Jakarta-Regular', lineHeight: 20 },
+                                strong: { fontFamily: 'Jakarta-Bold' },
+                                em: { fontFamily: 'Jakarta-Italic' },
+                                bullet_list: { marginVertical: 4 },
+                                list_item: { marginVertical: 2 },
+                            }}>
+                                {results.ai_report}
+                            </Markdown>
                         </View>
                     </View>
                 )}
@@ -212,6 +240,34 @@ export default function ResultsScreen() {
 
                 {/* Bottom spacing */}
                 <View style={{ height: 50 }} />
+
+                <View style={{
+                position: 'absolute',
+                bottom: 20,
+                left: 0,
+                right: 0,
+                alignItems: 'center',
+                }}>
+                    <Text style={{ 
+                        color: '#a0aec0', 
+                        fontSize: 12, 
+                        fontFamily: 'Jakarta-Light' 
+                    }}>
+                        Powered by Google's Gemini 2.0 Flash AI Model.
+                    </Text>
+                    <Link href="https://github.com/saadmemon1/Sprov-AI" target="_blank">
+                            <Text style={{ 
+                                color: '#a0aec0', 
+                                fontSize: 12, 
+                                fontFamily: 'Jakarta-Light' ,
+                                marginTop: 4,
+                                textDecorationLine: 'underline',
+                                fontWeight: 'bold'
+                            }}>
+                                © 2025 Sprov AI. All rights reserved.
+                            </Text>
+                    </Link>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );

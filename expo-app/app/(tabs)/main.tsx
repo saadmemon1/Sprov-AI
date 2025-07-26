@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Image, Text, TouchableOpacity, View, Platform, Alert, ActivityIndicator } from "react-native";
+import { Image, Text, TouchableOpacity, View, Platform, Alert, ActivityIndicator, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { Link, router } from "expo-router";
+import { setLastAnalysisResult } from './analysisResultStore';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Markdown from "react-native-markdown-display";
 import * as DocumentPicker from 'expo-document-picker';
+import { green } from "react-native-reanimated/lib/typescript/Colors";
 // import { DragDropContentView } from 'expo-drag-drop-content-view'; // Ensure this is installed and imported correctly
 
 // Only import DragDropContentView on web
@@ -89,12 +92,12 @@ export default function Main() {
     };
 
     const analyzeAudio = async () => {
-        if(selectedFiles.length === 0) {
+        if (selectedFiles.length === 0) {
             Alert.alert('No files selected', 'Please select an audio file to analyze.');
             return;
         }
         const file = selectedFiles[0];
-        if(file.size > 50 * 1024 * 1024) { // 50MB limit
+        if (file.size > 50 * 1024 * 1024) { // 50MB limit
             Alert.alert('File too large', 'Please select an audio file smaller than 50MB.');
             return;
         }
@@ -103,32 +106,45 @@ export default function Main() {
         console.log('Starting analysis for files:', selectedFiles);
         try {
             const formData = new FormData();
-            if(Platform.OS === 'web') {
-                // For web, we can use the file directly
-                formData.append('file', file);
-            }
-            else {
-                // For mobile, we need to convert the file to a Blob
+            if (Platform.OS === 'web') {
+                // On web, ensure file is a real File/Blob. If not, fetch as Blob and construct a File.
+                let fileToSend = file;
+                // If not a File or Blob, fetch from uri
+                if (!(file instanceof File || file instanceof Blob)) {
+                    // Try to fetch the file as a blob from its uri
+                    if (file.uri) {
+                        const response = await fetch(file.uri);
+                        const blob = await response.blob();
+                        fileToSend = new File([blob], file.name || file.fileName || 'audio.wav', { type: file.mimeType || blob.type || 'audio/wav' });
+                    } else {
+                        throw new Error('Selected file is not a valid File/Blob and has no uri.');
+                    }
+                }
+                formData.append('file', fileToSend, fileToSend.name || fileToSend.fileName || 'audio.wav');
+            } else {
+                // For native, fetch the file as a blob and append as file
+                const fileUri = file.uri;
+                const fileName = file.name || file.fileName || 'audio.wav';
+                const fileType = file.mimeType || 'audio/wav';
                 formData.append('file', {
-                    uri: file.uri,
-                    type: file.mimeType || 'audio/wav',
-                    name: file.name || file.fileName || 'audio.wav',
+                    uri: fileUri,
+                    type: fileType,
+                    name: fileName,
                 } as any);
             }
             setAnalysisProgress('Uploading file...');
-            
+
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
 
             setAnalysisProgress('Processing audio...');
 
-            const response = await fetch('https://sprov-ai.onrender.com/analyze-audio', {
+            // Use the correct endpoint with trailing slash
+            const response = await fetch('https://sprov-ai.onrender.com/analyze-audio/', {
                 method: 'POST',
                 body: formData,
                 signal: controller.signal,
-                headers: {
-
-                }
+                // Do NOT set Content-Type header; let fetch/axios set it for multipart
             });
             clearTimeout(timeoutId);
             if (!response.ok) {
@@ -139,18 +155,13 @@ export default function Main() {
             setAnalysisProgress('Analysis complete!');
             const results: AnalysisResults = await response.json();
             console.log('Analysis results:', results);
-            router.push({
-                pathname: '/(tabs)/two',
-                params: {
-                    results: JSON.stringify(results),
-                    fileName: file.name || file.fileName || 'Audio File',
-                }
-            });
+            setLastAnalysisResult(results, file.name || file.fileName || 'Audio File');
+            router.push('/(tabs)/results');
         } catch (error) {
             console.error('Analysis error:', error);
-            
+
             let errorMessage = 'An unexpected error occurred.';
-            
+
             if (error instanceof Error) {
                 if (error.name === 'AbortError') {
                     errorMessage = 'Request timed out. Please try with a shorter audio file.';
@@ -158,9 +169,9 @@ export default function Main() {
                     errorMessage = error.message;
                 }
             }
-            
+
             Alert.alert(
-                'Analysis Failed', 
+                'Analysis Failed',
                 `${errorMessage}\n\nPlease try again with a different file or check your internet connection.`,
                 [{ text: 'OK' }]
             );
@@ -168,7 +179,6 @@ export default function Main() {
             setIsAnalyzing(false);
             setAnalysisProgress('');
         }
-
     };
 
     // Common styling for the upload container
@@ -248,7 +258,11 @@ export default function Main() {
 
     return (
         <SafeAreaView style={{ flex: 1, alignItems: 'center', backgroundColor: '#fff' }}>
+            <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', paddingBottom: 100 }} 
+                keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
             {/* Header */}
+            <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")}>
             <View
                 style={{
                     flexDirection: "row",
@@ -265,11 +279,12 @@ export default function Main() {
                     style={{ width: 110, height: 110, resizeMode: "contain" }}
                 />
             </View>
+            </TouchableOpacity>
 
-            <Text style={{ fontSize: 20, textAlign: 'center', marginTop: 50, fontFamily: 'Jakarta-Bold', marginBottom: 20 }}>
+            <Text style={{ fontSize: 20, textAlign: 'center', marginTop: 40, fontFamily: 'Jakarta-Bold', marginBottom: 15 }}>
                 Upload Your Audio File Below
             </Text>
-            <Text style={{ fontSize: 15, textAlign: 'center', marginBottom: 20, color: '#718096', fontFamily: 'Jakarta-Light' }}>
+            <Text style={{ fontSize: 13, textAlign: 'center', marginBottom: 20, color: '#718096', fontFamily: 'Jakarta-Light' }}>
                 Supported formats: MP3, WAV, M4A, FLAC
             </Text>
 
@@ -377,6 +392,102 @@ export default function Main() {
                     </Text>
                 </TouchableOpacity>
             )}
+
+            <View style={{ height: 1, backgroundColor: '#e2e8f0', width: '85%', alignSelf: 'center', marginVertical: 34 }} />
+                <Text style={{
+                    fontSize: 18,
+                    fontFamily: 'Jakarta-Bold',
+                    textAlign: 'left',
+                    marginBottom: 20,
+                    alignSelf: 'flex-start', // Align left
+                    paddingLeft: 30,
+                    color: '#2d3748',
+                    letterSpacing: 0.5,
+                }}>
+                    Sample Analysis Report 🗒️
+                </Text>
+
+            <Markdown
+  style={{
+    body: {
+      fontFamily: 'Jakarta-Regular',
+      fontSize: 13,
+      lineHeight: 20,
+      color: '#4a5568',
+      marginHorizontal: 30,
+      marginBottom: 20,
+      textAlign: 'left',
+      alignSelf: 'flex-start', // Align left
+      backgroundColor: '#f7fafc',
+      padding: 16,
+      borderRadius: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+  }}
+>
+{`
+**Speech Clarity:** The speech is clear and easy to understand.
+
+**Pitch and Tone Feedback:** The pitch is dynamic, showing good variation and energy.
+
+**Speaking Pace:** The pace is steady, but could be slowed slightly for emphasis.
+
+**Communication Effectiveness:** The message is well-communicated, with minor areas for improvement.
+
+**Speech Style:** Dynamic
+
+**Stuttering Detected:** No
+
+**Pitch/Intensity Statistics:**
+- Average Pitch: 220 Hz
+- Pitch Variation: 45 Hz
+- Average Intensity: 0.07
+- Intensity Variation: 0.03
+
+**Pitch Contour Graph:**  
+A visual graph showing how your pitch changes throughout the audio will be included in your report.
+
+**Transcript:**  
+"Thank you for using Sprov AI. This is a sample transcript of your audio."
+
+**Improvement Suggestions:**
+1. Try to pause more between key points.
+2. Reduce filler words for a more professional tone.
+3. Maintain a consistent volume throughout.
+`}
+</Markdown>
+            <View style={{
+                position: 'absolute',
+                bottom: 20,
+                left: 0,
+                right: 0,
+                alignItems: 'center',
+            }}>
+                <Text style={{ 
+                    color: '#a0aec0', 
+                    fontSize: 12, 
+                    fontFamily: 'Jakarta-Light' 
+                }}>
+                    Powered by Google's Gemini 2.0 Flash AI Model.
+                </Text>
+                <Link href="https://github.com/saadmemon1/Sprov-AI" target="_blank">
+                        <Text style={{ 
+                            color: '#a0aec0', 
+                            fontSize: 12, 
+                            fontFamily: 'Jakarta-Light' ,
+                            marginTop: 4,
+                            textDecorationLine: 'underline',
+                            fontWeight: 'bold'
+                        }}>
+                            © 2025 Sprov AI. All rights reserved.
+                        </Text>
+                </Link>
+            </View>
+            </ScrollView>
         </SafeAreaView>
     );
 }

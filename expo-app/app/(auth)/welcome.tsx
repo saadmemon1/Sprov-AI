@@ -1,17 +1,15 @@
-import { Button, Image, Platform, Text, TouchableOpacity, View } from "react-native";
+import { Button, Image, Platform, Text, Touchable, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import Swiper from "react-native-swiper";
-import { useRef, useState } from "react";
-// import { onboarding } from "@/constants";
-
+import { Link, router } from "expo-router";
 
 const Onboarding = () => {
   return (
     <SafeAreaView className="flex h-full items-center justify-between bg-white">
+      <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")}>
         <Image source={require("@/assets/images/icon.png")}
                     style={{ width: 256, height: 256, resizeMode: "contain" }}
             />
+      </TouchableOpacity>
         <View className="flex items-center justify-center p-1">
             
             <View className="flex flex-col items-center justify-center w-full mt-10 px-6">
@@ -62,6 +60,33 @@ const Onboarding = () => {
           {"Let's Get Started!"}
         </Text>
       </TouchableOpacity>
+      <View style={{
+          position: 'absolute',
+          bottom: 20,
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+      }}>
+          <Text style={{ 
+              color: '#a0aec0', 
+              fontSize: 12, 
+              fontFamily: 'Jakarta-Light' 
+          }}>
+              Powered by Google's Gemini 2.0 Flash AI Model.
+          </Text>
+          <Link href="https://github.com/saadmemon1/Sprov-AI" target="_blank">
+                  <Text style={{ 
+                      color: '#a0aec0', 
+                      fontSize: 12, 
+                      fontFamily: 'Jakarta-Light' ,
+                      marginTop: 4,
+                      textDecorationLine: 'underline',
+                      fontWeight: 'bold'
+                  }}>
+                      © 2025 Sprov AI. All rights reserved.
+                  </Text>
+          </Link>
+      </View>
     </SafeAreaView>
   );
 };
