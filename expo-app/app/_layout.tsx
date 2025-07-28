@@ -5,7 +5,6 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar, setStatusBarHidden } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
-import * as FullScreen from '@untitled/expo-full-screen';
 import React, { useEffect, useState } from "react";
 import { AppState, Platform, View } from "react-native";
 import { use, useCallback } from 'react';
@@ -21,7 +20,7 @@ export {
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(auth)/welcome',
+  initialRouteName: '(auth)',
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -54,7 +53,10 @@ export default function RootLayout() {
     "Jakarta-SemiBoldItalic": require("../assets/fonts/PlusJakartaSans-SemiBoldItalic.ttf"),
   });
 
-  const [screenDimensions, setScreenDimensions] = useState({ height: "100%", width: "100%" });
+  const [screenDimensions, setScreenDimensions] = useState<{ height: number; width: number }>({ 
+    height: Platform.OS === 'web' ? window.innerHeight : 0, 
+    width: Platform.OS === 'web' ? window.innerWidth : 0 
+  });
   const [isSystemStatusBarVisible, setSystemStatusBarVisible] = useState(false);
   const [isSystemNavigationBarVisible, setSystemNavigationBarVisible] = useState(false);
 
@@ -69,12 +71,12 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
+  // Remove FullScreen logic; immersive handled by NavigationBar and StatusBar
   useEffect(() => {
+    // Optionally set navigation bar style here if desired
     // NavigationBar.setBackgroundColorAsync('transparent');
     // NavigationBar.setButtonStyleAsync('dark');
     // NavigationBar.setVisibilityAsync('visible');
-    FullScreen.enterFullScreen();
-    return () => FullScreen.exitFullScreen();
   }, []);
 
   // Hide bars and set up listeners
@@ -116,7 +118,7 @@ export default function RootLayout() {
     return undefined;
   }, []);
 
-  const onLayout = useCallback(event => {
+  const onLayout = useCallback((event: { nativeEvent: { layout: { width: number; height: number } } }) => {
     const { width, height } = event.nativeEvent.layout;
     if (!isSystemStatusBarVisible && !isSystemNavigationBarVisible) {
       setScreenDimensions({ height, width });
@@ -127,6 +129,15 @@ export default function RootLayout() {
     return null;
   }
 
+  // Simplified layout for web
+  if (Platform.OS === 'web') {
+    return (
+      <View style={{ flex: 1 }}>
+        <StatusBar style="dark" hidden />
+        <RootLayoutNav />
+      </View>
+    );
+  }
 
   return (
     <View
@@ -146,6 +157,7 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        <Stack.Screen name="debug" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />

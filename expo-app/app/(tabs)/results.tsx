@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, TouchableOpacity, View, Image, Platform, Text }
 import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
-import { getLastAnalysisResult } from './analysisResultStore';
+import { getLastAnalysisResult } from '../../utils/analysisResultStore';
 import { useState, useEffect } from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 

@@ -2,11 +2,10 @@ import { useState } from "react";
 import { Image, Text, TouchableOpacity, View, Platform, Alert, ActivityIndicator, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, router } from "expo-router";
-import { setLastAnalysisResult } from './analysisResultStore';
+import { setLastAnalysisResult } from '../../utils/analysisResultStore';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Markdown from "react-native-markdown-display";
 import * as DocumentPicker from 'expo-document-picker';
-import { green } from "react-native-reanimated/lib/typescript/Colors";
 // import { DragDropContentView } from 'expo-drag-drop-content-view'; // Ensure this is installed and imported correctly
 
 // Only import DragDropContentView on web
