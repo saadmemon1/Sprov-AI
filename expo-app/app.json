@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Sprov-AI",
-    "slug": "Sprov-AI",
+    "name": "Sprov AI",
+    "slug": "sprov-ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
