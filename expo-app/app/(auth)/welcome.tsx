@@ -1,15 +1,17 @@
-import { Button, Image, Platform, Text, Touchable, TouchableOpacity, View } from "react-native";
+import { Image, Platform, Text, ScrollView, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, router } from "expo-router";
 
 const Onboarding = () => {
   return (
     <SafeAreaView className="flex h-full items-center justify-between bg-white">
-      <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")}>
-        <Image source={require("@/assets/images/icon.png")}
-                    style={{ width: 256, height: 256, resizeMode: "contain" }}
-            />
-      </TouchableOpacity>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', paddingBottom: 100 }} 
+                keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")}>
+          <Image source={require("@/assets/images/icon.webp")}
+                      style={{ width: 256, height: 256, resizeMode: "contain" }}
+              />
+        </TouchableOpacity>
         <View className="flex items-center justify-center p-1">
             
             <View className="flex flex-col items-center justify-center w-full mt-10 px-6">
@@ -87,6 +89,7 @@ const Onboarding = () => {
                   </Text>
           </Link>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };

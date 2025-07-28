@@ -275,7 +275,7 @@ export default function Main() {
                 }}
             >
                 <Image
-                    source={require("@/assets/images/icon.png")}
+                    source={require("@/assets/images/icon.webp")}
                     style={{ width: 110, height: 110, resizeMode: "contain" }}
                 />
             </View>

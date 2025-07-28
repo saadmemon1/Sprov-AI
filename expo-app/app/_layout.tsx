@@ -3,7 +3,12 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { StatusBar, setStatusBarHidden } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
+import * as FullScreen from '@untitled/expo-full-screen';
+import React, { useEffect, useState } from "react";
+import { AppState, Platform, View } from "react-native";
+import { use, useCallback } from 'react';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -30,7 +35,6 @@ SplashScreen.preventAutoHideAsync();
 // }
 
 export default function RootLayout() {
-
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
@@ -50,6 +54,10 @@ export default function RootLayout() {
     "Jakarta-SemiBoldItalic": require("../assets/fonts/PlusJakartaSans-SemiBoldItalic.ttf"),
   });
 
+  const [screenDimensions, setScreenDimensions] = useState({ height: "100%", width: "100%" });
+  const [isSystemStatusBarVisible, setSystemStatusBarVisible] = useState(false);
+  const [isSystemNavigationBarVisible, setSystemNavigationBarVisible] = useState(false);
+
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
@@ -61,11 +69,75 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
+  useEffect(() => {
+    // NavigationBar.setBackgroundColorAsync('transparent');
+    // NavigationBar.setButtonStyleAsync('dark');
+    // NavigationBar.setVisibilityAsync('visible');
+    FullScreen.enterFullScreen();
+    return () => FullScreen.exitFullScreen();
+  }, []);
+
+  // Hide bars and set up listeners
+  useEffect(() => {
+    const navigationConfig = async () => {
+      if (Platform.OS === "android") {
+        await NavigationBar.setBehaviorAsync("overlay-swipe");
+        await NavigationBar.setVisibilityAsync("hidden");
+      }
+    };
+
+    if (Platform.OS !== "web") {
+      setStatusBarHidden(true, "none");
+      setSystemStatusBarVisible(false);
+    }
+
+    if (Platform.OS === "android") {
+      navigationConfig();
+
+      const navigationBarListener = NavigationBar.addVisibilityListener(({ visibility }) => {
+        setSystemNavigationBarVisible(visibility === "visible");
+        if (visibility === "visible") {
+          navigationConfig();
+        }
+      });
+
+      const appStateListener = AppState.addEventListener("change", nextAppState => {
+        setSystemNavigationBarVisible(nextAppState !== "active");
+        if (nextAppState !== "active") {
+          navigationConfig();
+        }
+      });
+
+      return () => {
+        navigationBarListener.remove();
+        appStateListener.remove();
+      };
+    }
+    return undefined;
+  }, []);
+
+  const onLayout = useCallback(event => {
+    const { width, height } = event.nativeEvent.layout;
+    if (!isSystemStatusBarVisible && !isSystemNavigationBarVisible) {
+      setScreenDimensions({ height, width });
+    }
+  }, [isSystemNavigationBarVisible, isSystemStatusBarVisible]);
+
   if (!loaded) {
     return null;
   }
 
-  return <RootLayoutNav />;
+
+  return (
+    <View
+      style={{ height: screenDimensions.height, width: screenDimensions.width, overflow: "hidden" }}
+      onLayout={onLayout}
+    >
+      <StatusBar style="dark" hidden />
+      <RootLayoutNav />
+    </View>
+  );
+  // return <RootLayoutNav />;
 }
 
 function RootLayoutNav() {
