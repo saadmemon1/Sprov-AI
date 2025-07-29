@@ -4,17 +4,46 @@ import { Link, router } from "expo-router";
 
 const Onboarding = () => {
   return (
-    <SafeAreaView className="flex h-full items-center justify-between bg-white">
-      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', paddingBottom: 100 }} 
+    <SafeAreaView style={{
+      flex: 1,
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: 'white',
+      paddingHorizontal: Platform.OS === 'web' ? 20 : 0, // Add padding for web
+      paddingTop: Platform.OS === 'web' ? 20 : 0, // Add top padding for web
+    }}>
+      <ScrollView 
+        contentContainerStyle={{ 
+          flexGrow: 1, 
+          alignItems: 'center', 
+          paddingBottom: 100,
+          paddingHorizontal: Platform.OS === 'web' ? 20 : 0, // Additional padding for content
+        }} 
                 keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <TouchableOpacity onPress={() => router.replace("/(auth)/welcome")}>
           <Image source={require("@/assets/images/icon.webp")}
                       style={{ width: 256, height: 256, resizeMode: "contain" }}
               />
         </TouchableOpacity>
-        <View className="flex items-center justify-center p-1">
+        <View style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 4,
+          width: '100%',
+          maxWidth: Platform.OS === 'web' ? 600 : '100%', // Limit max width on web
+        }}>
             
-            <View className="flex flex-col items-center justify-center w-full mt-10 px-6">
+            <View style={{
+              flex: 1,
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              // marginTop: 10,
+              paddingHorizontal: 24,
+            }}>
               {/* Remove px-6 flag from the view's className for desc to be broader */}
               <Text
                 style={{
@@ -35,6 +64,8 @@ const Onboarding = () => {
                     marginBottom: 20, // mb-5
                     textAlign: "center",
                     marginTop: 10,
+                    paddingHorizontal: Platform.OS === 'web' ? 20 : 0, // Extra padding for web
+                    lineHeight: 24, // Better line height for readability
                   }}
                 >
                   {Platform.OS === 'web' ? (
@@ -47,26 +78,28 @@ const Onboarding = () => {
         </View>
       <TouchableOpacity
         style={{
-          width: "50%",
+          width: Platform.OS === 'web' ? '60%' : '60%',
+          maxWidth: 300, // Maximum width for larger screens
           backgroundColor: "#0286FF",
           borderRadius: 9999,
           padding: 16,
-          margin: 250,
+          margin: Platform.OS === 'web' ? 20 : 25,
           alignItems: "center",
+          marginHorizontal: Platform.OS === 'web' ? 20 : 'auto',
         }}
         onPress={() =>
           router.replace("/(tabs)/main")
         }
       >
-        <Text style={{ color: "white", fontSize: 16, fontFamily: "Jakarta-SemiBold" }}>
+        <Text style={{ color: "white", fontSize: 15, fontFamily: "Jakarta-SemiBold" }}>
           {"Let's Get Started!"}
         </Text>
       </TouchableOpacity>
       <View style={{
           position: 'absolute',
           bottom: 20,
-          left: 0,
-          right: 0,
+          left: 20, // Add left padding
+          right: 20, // Add right padding
           alignItems: 'center',
       }}>
           <Text style={{ 
